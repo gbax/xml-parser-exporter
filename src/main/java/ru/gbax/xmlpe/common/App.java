@@ -2,6 +2,7 @@ package ru.gbax.xmlpe.common;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import ru.gbax.xmlpe.common.exception.ImportException;
 import ru.gbax.xmlpe.common.utils.ContextHolder;
 import ru.gbax.xmlpe.common.utils.Log4jConfigUtil;
 import ru.gbax.xmlpe.testrecord.model.TestResord;
@@ -34,8 +35,12 @@ public class App {
         }
         if (StringUtils.equalsIgnoreCase(command, SYNC_COMMAND)) {
             showRecords();
-            ContextHolder.getXmlImporterService().runImport(file);
-            showRecords();
+            try {
+                ContextHolder.getXmlImporterService().runImport(file);
+                showRecords();
+            } catch (ImportException e) {
+                logger.error(e.getMessage());
+            }
         } else if (StringUtils.equalsIgnoreCase(command, EXPORT_COMMAND)) {
             showRecords();
             ContextHolder.getXmlExporterService().runExport(file);

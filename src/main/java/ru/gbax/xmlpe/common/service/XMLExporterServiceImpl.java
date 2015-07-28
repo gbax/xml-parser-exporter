@@ -1,7 +1,6 @@
 package ru.gbax.xmlpe.common.service;
 
 import org.apache.log4j.Logger;
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import ru.gbax.xmlpe.common.service.api.XMLExporterService;
@@ -16,7 +15,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
+import java.io.*;
 import java.util.List;
 
 /**
@@ -66,15 +65,22 @@ public class XMLExporterServiceImpl implements XMLExporterService {
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(new File(filePath));
             logger.debug("Saving to the file...");
-            transformer.transform(source, result);
+            Writer bufferedWriter = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filePath), "UTF8"));
+            transformer.transform(source, new StreamResult(bufferedWriter));
             logger.info(String.format("File %s saved", filePath));
         } catch (ParserConfigurationException e) {
             logger.error("Cannot create DocumentBuilder");
             logger.debug(e);
         } catch (TransformerException e) {
             logger.error("Cannot transform document");
+            logger.debug(e);
+        } catch (FileNotFoundException e) {
+            logger.error(String.format("File %s not found", filePath));
+            logger.debug(e);
+        } catch (UnsupportedEncodingException e) {
+            logger.error("Unsupported encoding");
             logger.debug(e);
         }
     }

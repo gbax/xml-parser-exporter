@@ -6,16 +6,18 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import ru.gbax.xmlpe.common.exception.ImportException;
 import ru.gbax.xmlpe.common.service.api.XMLImporterService;
 import ru.gbax.xmlpe.common.utils.ImporterErrorHandler;
 import ru.gbax.xmlpe.testrecord.dao.api.TestRecordDAO;
 import ru.gbax.xmlpe.testrecord.model.TestResord;
-import ru.gbax.xmlpe.utils.TestRecordKeyModel;
+import ru.gbax.xmlpe.testrecord.utils.TestRecordKeyModel;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -24,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * —Â‚ËÒ ‰Îˇ ËÏÔÓÚ‡ ‚ ¡ƒ ËÁ Ù‡ÈÎ‡
+ * –°–µ—Ä–≤–∏—Å –∏–º–ø–æ—Ä—Ç–∞ –≤ —Ñ–∞–π–ª –∏–∑ –ë–î
  *
  * Created by GBAX on 27.07.2015.
  */
@@ -38,27 +40,27 @@ public class XMLImporterServiceImpl implements XMLImporterService {
         this.testRecordDAO = testRecordDAO;
     }
 
-    public void runImport(String filePath) {
+    public void runImport(String filePath) throws ImportException {
         List<TestResord> allRecords = testRecordDAO.findAll();
-        Map<TestRecordKeyModel, TestResord> recordDbMap = new HashMap<TestRecordKeyModel, TestResord>();
+        Map<TestRecordKeyModel, TestResord> recordDbMap = new HashMap<>();
         for (TestResord testResord : allRecords) {
             recordDbMap.put(new TestRecordKeyModel(testResord.getDepCode(), testResord.getDepJob()), testResord);
         }
         logger.info(String.format("Start import file %s.", filePath));
-        List<TestResord> recordsFromXML = getRecordsFromXML(filePath);
+        List<TestResord> recordsFromXML;
+        recordsFromXML = getRecordsFromXML(filePath);
+        logger.info(String.format("Founded records in file %s ...", recordsFromXML.size()));
         if (recordsFromXML.size() == 0) {
             return;
         }
-        logger.info(String.format("Founded records in file %s ...", recordsFromXML.size()));
-        Map<TestRecordKeyModel, TestResord> recordNewMap = new HashMap<TestRecordKeyModel, TestResord>();
-        List<TestResord> recordToDelete = new ArrayList<TestResord>();
-        List<TestResord> recordToInsert = new ArrayList<TestResord>();
-        Map<Long, TestResord> recordToUpdate = new HashMap<Long, TestResord>();
+        Map<TestRecordKeyModel, TestResord> recordNewMap = new HashMap<>();
+        List<TestResord> recordToDelete = new ArrayList<>();
+        List<TestResord> recordToInsert = new ArrayList<>();
+        Map<Long, TestResord> recordToUpdate = new HashMap<>();
         for (TestResord testResord : recordsFromXML) {
             TestRecordKeyModel testRecordKeyModel = new TestRecordKeyModel(testResord.getDepCode(), testResord.getDepJob());
             if (recordNewMap.get(testRecordKeyModel) != null) {
-                logger.error(String.format("Found duplicate record %s", testResord));
-                return;
+                throw new ImportException(String.format("Found duplicate record %s", testResord));
             }
             recordNewMap.put(testRecordKeyModel, testResord);
         }
@@ -67,7 +69,7 @@ public class XMLImporterServiceImpl implements XMLImporterService {
             if (testResordDb == null) {
                 recordToInsert.add(record.getValue());
             } else {
-                recordToUpdate.put(testResordDb.getId(),record.getValue());
+                recordToUpdate.put(testResordDb.getId(), record.getValue());
                 recordDbMap.remove(record.getKey());
             }
         }
@@ -90,27 +92,41 @@ public class XMLImporterServiceImpl implements XMLImporterService {
                 logger.fatal("Cannot rollback transaction");
                 logger.debug(e1);
             }
+            return;
         }
         logger.info(String.format("File %s imported", filePath));
     }
 
-    private List<TestResord> getRecordsFromXML(String filePath) {
-        List<TestResord> testResords = new ArrayList<TestResord>();
+    private List<TestResord> getRecordsFromXML(String filePath) throws ImportException {
+        List<TestResord> testResords = new ArrayList<>();
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setValidating(false);
             DocumentBuilder db = dbf.newDocumentBuilder();
             db.setErrorHandler(new ImporterErrorHandler(XMLImporterServiceImpl.class));
-            Document doc = db.parse(new File(filePath));
+            FileInputStream in = new FileInputStream(new File(filePath));
+            Document doc = db.parse(in, "UTF-8");
             Element docEle = doc.getDocumentElement();
             NodeList nl = docEle.getChildNodes();
             if (nl != null && nl.getLength() > 0) {
                 for (int i = 0; i < nl.getLength(); i++) {
                     if (nl.item(i).getNodeType() == Node.ELEMENT_NODE) {
                         Element el = (Element) nl.item(i);
-                        String depCode = el.getElementsByTagName("depCode").item(0).getTextContent();
-                        String depJob = el.getElementsByTagName("depJob").item(0).getTextContent();
-                        String description = el.getElementsByTagName("description").item(0).getTextContent();
+                        Node depCodeNode = el.getElementsByTagName("depCode").item(0);
+                        if (depCodeNode == null) {
+                            throw new ImportException("Node depCode not found");
+                        }
+                        String depCode = depCodeNode.getTextContent();
+                        Node depJobNode = el.getElementsByTagName("depJob").item(0);
+                        if (depJobNode == null) {
+                            throw new ImportException("Node depJobNode not found");
+                        }
+                        String depJob = depJobNode.getTextContent();
+                        Node descriptionNode = el.getElementsByTagName("description").item(0);
+                        if (descriptionNode == null) {
+                            throw new ImportException("Node descriptionNode not found");
+                        }
+                        String description = descriptionNode.getTextContent();
                         TestResord testResord = new TestResord();
                         testResord.setDepCode(depCode);
                         testResord.setDepJob(depJob);
@@ -122,14 +138,17 @@ public class XMLImporterServiceImpl implements XMLImporterService {
             }
             return testResords;
         } catch (ParserConfigurationException e) {
-            logger.error("Cannot create DocumentBuilder");
+            logger.debug(e);
+            throw new ImportException("Cannot create DocumentBuilder");
         } catch (SAXException e) {
-            logger.error(String.format("Error parse file %s", filePath));
             logger.debug(e);
+            throw new ImportException(String.format("Error parse file %s", filePath));
         } catch (IOException e) {
-            logger.error("Error reading file");
             logger.debug(e);
+            throw new ImportException("Error reading file");
+        } catch (Exception e) {
+            logger.debug(e);
+            throw new ImportException(String.format("Error reading file: %s", e.getMessage()));
         }
-        return testResords;
     }
 }

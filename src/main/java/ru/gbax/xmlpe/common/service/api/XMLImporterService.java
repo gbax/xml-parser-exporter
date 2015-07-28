@@ -1,5 +1,7 @@
 package ru.gbax.xmlpe.common.service.api;
 
+import ru.gbax.xmlpe.common.exception.ImportException;
+
 /**
  * Интерфейс для запуска импорта в БД
  *
@@ -11,6 +13,6 @@ public interface XMLImporterService {
      * Запуск импорта
      * @param filePath путь и название файла
      */
-    void runImport(String filePath);
+    void runImport(String filePath) throws ImportException;
 
 }

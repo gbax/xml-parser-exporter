@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Утилита для работы с пропертиями
+ * РЈС‚РёР»РёС‚Р° РґСЏР» СЂР°Р±РѕС‚С‹ СЃ Properties
  *
  * Created by GBAX on 27.07.2015.
  */
@@ -20,7 +20,7 @@ public class PropertiesUtils {
     private static Properties prop = null;
 
     /**
-     * Инициализация пропертей
+     * РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
      */
     public static void init() {
         InputStream input = null;
@@ -44,7 +44,7 @@ public class PropertiesUtils {
     }
 
     /**
-     * Получение свойства
+     * РџРѕР»СѓС‡РµРЅРёРµ Property
      * @param name
      * @return
      */

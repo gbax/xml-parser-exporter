@@ -6,7 +6,7 @@
        http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
 
     <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
-          p:location="file:application.properties"/>
+          p:location="file:#{systemProperties['property.file']}"/>
 
     <jdbc:initialize-database data-source="dataSource" ignore-failures="DROPS" enabled="true">
         <jdbc:script location="classpath:db/init.sql" encoding="UTF-8"/>
