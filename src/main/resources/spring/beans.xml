@@ -1,0 +1,18 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+	<bean id="testRecordDAO" class="ru.gbax.xmlpe.testrecord.dao.JdbcTestRecordDAO">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="xmlExporter" class="ru.gbax.xmlpe.common.service.XMLExporterServiceImpl">
+		<property name="testRecordDAO" ref="testRecordDAO" />
+	</bean>
+
+	<bean id="xmlImporter" class="ru.gbax.xmlpe.common.service.XMLImporterServiceImpl">
+		<property name="testRecordDAO" ref="testRecordDAO" />
+	</bean>
+	
+</beans>
